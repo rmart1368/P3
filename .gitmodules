@@ -1,0 +1,3 @@
+[submodule "cve_db/cve_db"]
+	path = cve_db/cve_db
+	url = https://github.com/CVEProject/cvelistV5.git
