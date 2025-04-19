@@ -48,5 +48,4 @@ def get_db_cursor():
     conn.commit()
     return conn, cur
 
-def load_all_cves():
-    
+#def load_all_cves()
