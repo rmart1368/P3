@@ -126,4 +126,41 @@ def import_cves():
     conn.close()
     return len(rows)
 
-# Function to query 
+# Function to query cve database with optional filters 
+def query_cves(start_date = None, end_date = None, vendor = None, product = None, os_name = None):
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+
+    sql_parts = [
+        "SELECT cve_id, published_date, vendor, product, os, severity, severity_score",
+        "FROM cves",
+        # dev note: don't remove this, it makes the filters easier to work with
+        "WHERE 1=1"
+    ]
+
+    filters = []
+
+    # append relevant filters to the query
+    if vendor:
+        sql_parts.append("AND vendor = ?")
+        filters.append(vendor)
+    if product:
+        sql_parts.append("AND product = ?")
+        filters.append(product)
+    if os_name:
+        sql_parts.append("AND os = ?")
+        filters.append(os_name)
+    if start_date:
+        sql_parts.append("AND published_date >= ?")
+        filters.append(start_date)
+    if end_date:
+        sql_parts.append("AND published_date <= ?")
+        filters.append(end_date)
+
+    # place actual values into the query and get all the results
+    sql_query = " ".join(sql_parts)
+    cur.execute(sql_query, filters)
+    results = cur.fetchall()
+
+    conn.close()
+    return results
