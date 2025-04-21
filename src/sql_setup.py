@@ -22,6 +22,7 @@ import os, sqlite3, json
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 DB_FILE = os.path.join(BASE, 'internal_cve_db.sqlite')
 EXTERNAL = os.path.join(BASE, 'cve_db', 'external_cve_db')
+OUTPUT_TXT = os.path.join(BASE, 'cve_export.txt')
 
 # Function to set up table
 def get_db_cursor():
@@ -90,20 +91,19 @@ def parse_cve(entry):
     affected = cna.get("affected", [])
     vendor = ""
     product = ""
-    platform = ""
+    platform = "n/a"
     if affected:
         vendor = affected[0].get("vendor", "n/a")
         product = affected[0].get("product", "n/a")
-        platform = affected[0].get("platforms", "n/a")
+        pre_platform = affected[0].get("platforms", [])
+        platform = ", ".join(pre_platform) if isinstance(pre_platform, list) else pre_platform
     
     # severity info
     severity = ""
     severity_score = ""
-    metrics = cna.get("metrics", [])
-    if metrics: 
-        cvss = metrics[0].get("cvssV3_1", {})
-        severity = cvss.get("baseSeverity", "n/a")
-        severity_score = cvss.get("baseScore", "n/a")
+    metrics = cna.get("metrics", {}).get("cvssMetricV3_1", {})
+    severity = metrics.get("baseSeverity", "n/a")
+    severity_score = metrics.get("baseScore", "n/a")
 
     return (
         cve_id, pub_date, description, vendor, product, platform, severity, severity_score
@@ -164,3 +164,15 @@ def query_cves(start_date = None, end_date = None, vendor = None, product = None
 
     conn.close()
     return results
+
+def export_to_txt(cve_rows):
+    with open(OUTPUT_TXT, 'w', encoding='utf-8') as f:
+        for row in cve_rows:
+            line = "\t".join(str(item).replace('\n', ' ').replace('\t', ' ') for item in row)
+            f.write(line + "\n")
+        print(f"Exported {len(cve_rows)} CVEs to {OUTPUT_TXT}")
+
+if __name__ == '__main__':
+    count = import_cves()
+    all_rows = query_cves()
+    export_to_txt(all_rows)
