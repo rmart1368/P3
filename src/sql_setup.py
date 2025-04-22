@@ -50,8 +50,10 @@ def get_db_cursor():
 
 # Function to search through external cve database
 def load_cves():
-    # go through all files
-    for root, _, files in os.walk(EXTERNAL):
+    # go through all files in cves dir
+    cves_dir = os.path.join(EXTERNAL, 'cves')
+
+    for root, _, files in os.walk(cves_dir):
         for file in files:
             # check to make sure it is a .json file
             if not file.lower().endswith('.json'):
@@ -89,22 +91,26 @@ def parse_cve(entry):
     
     # software info
     affected = cna.get("affected", [])
-    vendor = ""
-    product = ""
+    vendor = "n/a"
+    product = "n/a"
     platform = "n/a"
     if affected:
         vendor = affected[0].get("vendor", "n/a")
         product = affected[0].get("product", "n/a")
         pre_platform = affected[0].get("platforms", [])
-        platform = ", ".join(pre_platform) if isinstance(pre_platform, list) else pre_platform
+        if isinstance(pre_platform, list):
+            platform = ", ".join(pre_platform).strip() or "n/a"
+        else:
+            platform = str(pre_platform).strip() or "n/a"
     
     # severity info
     severity = ""
     severity_score = ""
-    metrics = cna.get("metrics", {}).get("cvssMetricV3_1", {})
-    severity = metrics.get("baseSeverity", "n/a")
-    severity_score = metrics.get("baseScore", "n/a")
-
+    metrics_storage = cna.get("metrics", [{}])  # Default to [{}] if "metrics" is empty or missing
+    cvss_v3 = metrics_storage[0].get("cvssV3_1", {})  # Safely get cvssV3_1, default to {} if not found
+    severity = cvss_v3.get("baseSeverity", "n/a")
+    severity_score = cvss_v3.get("baseScore", "n/a")
+    
     return (
         cve_id, pub_date, description, vendor, product, platform, severity, severity_score
     )
@@ -175,4 +181,5 @@ def export_to_txt(cve_rows):
 if __name__ == '__main__':
     count = import_cves()
     all_rows = query_cves()
-    export_to_txt(all_rows)
+    valid_rows = [row for row in all_rows if row[0] and not str(row[0]).startswith("None")]
+    export_to_txt(valid_rows)
