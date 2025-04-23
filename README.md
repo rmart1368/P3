@@ -3,7 +3,7 @@
 ### Steps 
 
 1. git clone --recurse-submodules https://github.com/CVEProject/cvelistV5.git
-
+2. run sql_setup.py and wait for it to comb through all appropriate files, may take a few minutes.
 
 C++ code:
 1)download all files (import new data from python script if necessary)
