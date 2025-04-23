@@ -11,34 +11,42 @@
 #include <sstream>
 using namespace std;
 
+
 int main()
 {
     VulnerabilityMapper vul_map;
     VulnerabilityInverseSetMapper vul_inv_set_map;
     vector<string> user_filter_inputs;
 
-
     //PARSE FILE INPUT
-    ifstream input_file("./CVE_input.txt");
+    ifstream input_file("./cve_export.txt");
     string line;
+    int line_counter = 0;
     while (getline(input_file, line)) {
+        line_counter++;
         vector<string> data_vector;
         stringstream ss(line);
         string data_value;
-
+        int input_counter = 0;
         while (getline(ss, data_value, '\t')) {
+            if (input_counter == 6)
+            {
+                if(data_value == "n/a") data_value = "0";
+            }
             data_vector.push_back(data_value);
+            input_counter++;
         }
         vul_map.unordered_map_SQL_upload(data_vector);
         vul_inv_set_map.unordered_map_SQL_upload(data_vector);
     }
     input_file.close();
+    cout << "Data Values Loaded: " << line_counter << endl;
 
     //PARSE USER INPUT
     string input;
     cout << "Welcome to the CVE manager! Please follow the upcoming prompts!" << endl;
     cout << "If you would not like to search by a given parameter, press enter to skip" << endl;
-    cout << "\nPlease input the date you would like to search in MM/DD/YYYY format:";
+    cout << "\nPlease input the date you would like to search in YYYY-MM-DD format:";
     getline(cin, input);
     user_filter_inputs.push_back(input);
     cout << "current filters:";
@@ -72,8 +80,7 @@ int main()
     {
         cout << " [" << user_filter_inputs.at(i) << "] ";
     }
-
-    cout << "\nPlease input the Severity you would like to search for:";
+    cout << "\nPlease input the Severity you would like to search for [LOW/MEDIUM/HIGH/CRITICAL]:";
     getline(cin, input);
     user_filter_inputs.push_back(input);
     cout << "current filters:";
@@ -82,20 +89,8 @@ int main()
         cout << " [" << user_filter_inputs.at(i) << "] ";
     }
     cout << endl << endl;
-    //format key: cve_id  value: <description, published_date, year, os, software, version, severity, cvss>
-    //format key: text    value: <string, string, int, string, string, string, string, float>
-    //connections from PYTHONSQL --> hashmap database still needs to be implemented
-    //will only have inputted values with appropriate search parameters, only need to input values into map and sort
 
-    //takes in cve_id_map and empty cvss_ordered_map passed by reference to update original values
-    //increments through every key in the cve_id_map and adds it to the multimap, which automatically sorts it upon insertion into a tree
-    //the data is added and sorted by cvss score (and can have duplicates due to it being a multimap)
-
-    //*node that this SQL_upload function is a placeholder and will be changed once I figure out the input format
-
-//    vul_map.multimap_print_all_cvss_ordered();
-
-//    const auto start{chrono::steady_clock::now()};
+    //START OF FIRST ALGORITHM SEARCH AND FILTER TIMER
     auto start1 = std::chrono::high_resolution_clock::now();
 
     vul_map.multimap_add_and_sort();
@@ -107,6 +102,7 @@ int main()
 
     cout << endl;
 
+    //START OF SECOND ALGORITHM SEARCH AND FILTER TIMER
     auto start2 = std::chrono::high_resolution_clock::now();
 
     vul_inv_set_map.set_and_multimap_add_and_sort();
